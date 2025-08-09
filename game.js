@@ -57,16 +57,37 @@
   let currentHint = null; // { r1,c1,r2,c2 }
 
   // Sizing
+  const hudEl = document.querySelector('.hud');
+  const packSectionEl = document.querySelector('.pack-section');
+  const packHudEl = document.querySelector('.pack-hud');
+  const tipsEl = document.querySelector('.tips');
+  const boardWrapEl = document.querySelector('.board-wrap');
+
   function computeTileSize() {
-    const gap = 8;
-    const maxBoardWidth = Math.min(window.innerWidth * 0.94, 640);
-    // estimate available vertical space: viewport minus approximate HUD + pack heights
-    const approxHud = window.innerWidth < 480 ? 120 : 150;
-    const approxPack = window.innerWidth < 480 ? 90 : 120;
-    const maxBoardHeight = Math.max(200, window.innerHeight - approxHud - approxPack);
-    const maxPixels = Math.min(maxBoardWidth, maxBoardHeight);
+    const styles = getComputedStyle(boardEl);
+    const gapVar = styles.getPropertyValue('--gap');
+    const gap = gapVar ? parseInt(gapVar) || 8 : 8;
+
+    const vv = window.visualViewport;
+    const vw = vv ? vv.width : window.innerWidth;
+    const vh = vv ? vv.height : window.innerHeight;
+
+    const boardWrapStyles = boardWrapEl ? getComputedStyle(boardWrapEl) : null;
+    const padV = boardWrapStyles ? (parseInt(boardWrapStyles.paddingTop) + parseInt(boardWrapStyles.paddingBottom)) : 32;
+    const padH = boardWrapStyles ? (parseInt(boardWrapStyles.paddingLeft) + parseInt(boardWrapStyles.paddingRight)) : 32;
+
+    const hudH = hudEl ? hudEl.getBoundingClientRect().height : 0;
+    const packH = packHudEl ? packHudEl.getBoundingClientRect().height : 0; // only header; content may be collapsed
+    const tipsH = tipsEl ? tipsEl.getBoundingClientRect().height : 0;
+
+    const fudge = vw < 520 ? 18 : 10; // ensure visibility of last row on phones
+    const availableHeight = Math.max(180, vh - hudH - packH - tipsH - padV - fudge);
+    const availableWidth = Math.max(200, vw - padH - 8);
+
+    const maxPixels = Math.min(availableWidth, availableHeight);
     const tile = Math.floor((maxPixels - (BOARD_SIZE - 1) * gap) / BOARD_SIZE);
-    return Math.max(44, Math.min(88, tile));
+    // Safety floor/ceiling
+    return Math.max(36, Math.min(92, tile));
   }
 
   function applyBoardSize() {
@@ -80,6 +101,18 @@
     // Reposition all gems after resize
     forEachGemElement((el, gem) => positionGemElement(el, gem.row, gem.col));
   });
+
+  // React to visual viewport changes (mobile address bar show/hide)
+  if (window.visualViewport) {
+    let vvTimer = null;
+    window.visualViewport.addEventListener('resize', () => {
+      if (vvTimer) clearTimeout(vvTimer);
+      vvTimer = setTimeout(() => {
+        applyBoardSize();
+        forEachGemElement((el, gem) => positionGemElement(el, gem.row, gem.col));
+      }, 50);
+    });
+  }
 
   function makeGemFromToken(token, row, col) {
     return { id: token.id, color: token.color, row, col };

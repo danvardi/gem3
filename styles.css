@@ -325,7 +325,7 @@ html, body { overflow-x: hidden; }
   .stat span:last-child { font-size: 14px; }
   .button { padding: 6px 10px; border-radius: 8px; font-size: 12px; }
   .board-wrap { padding: 8px 8px 12px; }
-  .board { max-width: calc(100vw - 16px); }
+  .board { max-width: calc(100vw - 16px); max-height: calc(100vh - 220px); }
   .pack-hud { padding: 0 2px; }
   .pack-counts { display: none; }
   .pack { display: flex; overflow-x: auto; gap: 4px; grid-template-columns: none; padding: 0 2px; }

@@ -873,9 +873,19 @@
   if (togglePackBtn) {
     togglePackBtn.addEventListener('click', () => {
       const section = document.querySelector('.pack-section');
-      const isCollapsed = section.classList.toggle('collapsed');
-      togglePackBtn.setAttribute('aria-expanded', String(!isCollapsed));
-      togglePackBtn.textContent = isCollapsed ? 'Show Pack' : 'Hide Pack';
+      section.classList.remove('collapsed');
+      section.setAttribute('aria-hidden', 'false');
+      togglePackBtn.setAttribute('aria-expanded', 'true');
+    });
+  }
+
+  const closePackBtn = document.getElementById('closePack');
+  if (closePackBtn) {
+    closePackBtn.addEventListener('click', () => {
+      const section = document.querySelector('.pack-section');
+      section.classList.add('collapsed');
+      section.setAttribute('aria-hidden', 'true');
+      togglePackBtn?.setAttribute('aria-expanded', 'false');
     });
   }
 

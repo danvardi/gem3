@@ -165,14 +165,22 @@ body {
 .gem.matched { opacity: 0; transform: scale(0.6) translateZ(0); transition: transform var(--duration-pop) var(--ease), opacity var(--duration-pop) var(--ease); }
 
 /* Hint pulse for suggested move */
-.gem.hint .inner {
-  box-shadow: 0 0 0 2px rgba(255,255,255,.8), 0 10px 24px rgba(0,0,0,.5), inset 0 2px 3px rgba(255,255,255,.4);
-  animation: gm-hint-pulse 900ms ease-in-out infinite;
+.gem.hint { z-index: 6; }
+.gem.hint .inner { box-shadow: 0 0 0 2px rgba(255,255,255,.85), 0 10px 24px rgba(0,0,0,.6), inset 0 2px 3px rgba(255,255,255,.45); }
+.gem.hint::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 20px;
+  border: 2px solid rgba(255,255,255,.85);
+  box-shadow: 0 0 16px rgba(255,255,255,.55), 0 0 28px rgba(255,255,255,.35) inset;
+  pointer-events: none;
+  animation: gm-hint-pulse 1100ms ease-in-out infinite;
 }
 @keyframes gm-hint-pulse {
-  0% { transform: scale(1); filter: brightness(1); }
-  50% { transform: scale(1.06); filter: brightness(1.15) saturate(1.1); }
-  100% { transform: scale(1); filter: brightness(1); }
+  0% { opacity: .7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.06); }
+  100% { opacity: .7; transform: scale(1); }
 }
 
 /* Particle burst for matches */

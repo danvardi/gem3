@@ -159,17 +159,17 @@
     if (b) getGemElementById(b.id)?.classList.add('hint');
   }
 
-  function restartHintTimer() {
+  function restartHintTimer(clearExistingHint = true) {
     lastMoveAt = Date.now();
     if (hintTimer) clearTimeout(hintTimer);
-    clearHint();
+    if (clearExistingHint) clearHint();
     hintTimer = setTimeout(async () => {
-      if (isBusy) { restartHintTimer(); return; }
+      if (isBusy) { restartHintTimer(clearExistingHint); return; }
       // find and show a hint
       const hint = findAnyAvailableMove();
       if (hint) setHint(hint.r1, hint.c1, hint.r2, hint.c2);
-      // restart so pulse keeps going every 30s if idle
-      restartHintTimer();
+      // restart so pulse keeps going every 30s if idle; do not clear the hint we just set
+      restartHintTimer(false);
     }, 30000);
   }
 

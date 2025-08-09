@@ -27,7 +27,8 @@ body {
               radial-gradient(1200px 800px at 120% 120%, #321a4d 0%, transparent 60%),
               linear-gradient(160deg, var(--bg1), var(--bg2));
 }
-html, body { overflow-x: hidden; }
+/* Prevent any scroll on mobile */
+html, body { overflow: hidden; }
 
 .app {
   min-height: 100vh;
@@ -35,6 +36,15 @@ html, body { overflow-x: hidden; }
   grid-template-rows: auto 1fr auto;
   align-items: center;
   justify-items: center;
+}
+/* Use dynamic viewport units when supported to avoid URL bar issues */
+@supports (height: 100dvh) {
+  .app { min-height: 100dvh; height: 100dvh; }
+  body { min-height: 100dvh; height: 100dvh; }
+}
+@supports (height: 100svh) {
+  .app { min-height: 100svh; height: 100svh; }
+  body { min-height: 100svh; height: 100svh; }
 }
 
 .hud {
@@ -338,6 +348,7 @@ html, body { overflow-x: hidden; }
   .pack-counts { display: none; }
   .pack { display: flex; overflow-x: auto; gap: 4px; grid-template-columns: none; padding: 0 2px; }
   .chip { flex: 0 0 auto; }
+  .tips { display: none; }
 }
 
 @media (max-width: 380px) {

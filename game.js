@@ -64,34 +64,43 @@
   const boardWrapEl = document.querySelector('.board-wrap');
 
   function computeTileSize() {
-    const styles = getComputedStyle(boardEl);
-    const gapVar = styles.getPropertyValue('--gap');
-    const gap = gapVar ? parseInt(gapVar) || 8 : 8;
-
+    const gap = parseInt(getComputedStyle(boardEl).getPropertyValue('--gap')) || 8;
     const vv = window.visualViewport;
     const vw = vv ? vv.width : window.innerWidth;
     const vh = vv ? vv.height : window.innerHeight;
 
-    const boardWrapStyles = boardWrapEl ? getComputedStyle(boardWrapEl) : null;
-    const padV = boardWrapStyles ? (parseInt(boardWrapStyles.paddingTop) + parseInt(boardWrapStyles.paddingBottom)) : 32;
-    const padH = boardWrapStyles ? (parseInt(boardWrapStyles.paddingLeft) + parseInt(boardWrapStyles.paddingRight)) : 32;
+    const hudH = hudEl ? Math.ceil(hudEl.getBoundingClientRect().height) : 0;
+    const packH = packHudEl ? Math.ceil(packHudEl.getBoundingClientRect().height) : 0; // header only
+    const tipsH = tipsEl ? Math.ceil(tipsEl.getBoundingClientRect().height) : 0;
+    const wrapPad = boardWrapEl ? getComputedStyle(boardWrapEl) : null;
+    const padTop = wrapPad ? parseInt(wrapPad.paddingTop) : 0;
+    const padBottom = wrapPad ? parseInt(wrapPad.paddingBottom) : 0;
+    const padLeft = wrapPad ? parseInt(wrapPad.paddingLeft) : 0;
+    const padRight = wrapPad ? parseInt(wrapPad.paddingRight) : 0;
 
-    const hudH = hudEl ? hudEl.getBoundingClientRect().height : 0;
-    const packH = packHudEl ? packHudEl.getBoundingClientRect().height : 0; // only header; content may be collapsed
-    const tipsH = tipsEl ? tipsEl.getBoundingClientRect().height : 0;
+    const availW = Math.max(180, Math.floor(vw - (padLeft + padRight) - 2));
+    const availH = Math.max(180, Math.floor(vh - (hudH + packH + tipsH + padTop + padBottom) - 2));
 
-    const fudge = vw < 520 ? 18 : 10; // ensure visibility of last row on phones
-    // Use 96% of available to avoid rounding clipping for the last row/col on some Android devices
-    const availableHeight = Math.max(180, (vh - hudH - packH - tipsH - padV - fudge) * 0.96);
-    const availableWidth = Math.max(200, (vw - padH - 8) * 0.96);
+    // Initial guess from formulas
+    const tilespaceW = Math.floor((availW - (BOARD_SIZE - 1) * gap) / BOARD_SIZE);
+    const tilespaceH = Math.floor((availH - (BOARD_SIZE - 1) * gap) / BOARD_SIZE);
+    let tile = Math.min(tilespaceW, tilespaceH);
+    tile = Math.max(30, Math.min(96, tile));
 
-    const maxPixels = Math.min(availableWidth, availableHeight);
-    // Use floor for width and height separately and take the smaller tile to ensure full fit
-    const tilespaceW = Math.floor((availableWidth - (BOARD_SIZE - 1) * gap) / BOARD_SIZE);
-    const tilespaceH = Math.floor((availableHeight - (BOARD_SIZE - 1) * gap) / BOARD_SIZE);
-    const tile = Math.min(tilespaceW, tilespaceH);
-    // Safety floor/ceiling
-    return Math.max(36, Math.min(92, tile));
+    // Iteratively decrease until the rendered board fits fully
+    const maxIters = 40;
+    for (let i = 0; i < maxIters; i++) {
+      boardEl.style.setProperty('--tile', tile + 'px');
+      boardEl.style.setProperty('--size', BOARD_SIZE);
+      // Force layout
+      const rect = boardEl.getBoundingClientRect();
+      const fitsW = rect.width <= availW;
+      const fitsH = rect.height <= availH;
+      if (fitsW && fitsH) break;
+      tile -= 1;
+      if (tile <= 26) break;
+    }
+    return tile;
   }
 
   function applyBoardSize() {

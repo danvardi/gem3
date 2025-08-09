@@ -82,8 +82,8 @@
     const availH = Math.max(180, Math.floor(vh - (hudH + packH + tipsH + padTop + padBottom) - 2));
 
     // Initial guess from formulas
-    const tilespaceW = Math.floor((availW - (BOARD_SIZE - 1) * gap) / BOARD_SIZE);
-    const tilespaceH = Math.floor((availH - (BOARD_SIZE - 1) * gap) / BOARD_SIZE);
+    const tilespaceW = Math.floor((availW - (BOARD_SIZE - 1) * gap - 1) / BOARD_SIZE);
+    const tilespaceH = Math.floor((availH - (BOARD_SIZE - 1) * gap - 1) / BOARD_SIZE);
     let tile = Math.min(tilespaceW, tilespaceH);
     tile = Math.max(30, Math.min(96, tile));
 
@@ -221,8 +221,9 @@
   }
 
   function positionGemElement(el, row, col, opts = {}) {
-    const tile = parseInt(getComputedStyle(boardEl).getPropertyValue('--tile')) || 72;
-    const gap = 8; // keep in sync with CSS --gap
+    const cs = getComputedStyle(boardEl);
+    const tile = parseInt(cs.getPropertyValue('--tile')) || 72;
+    const gap = parseInt(cs.getPropertyValue('--gap')) || 8; // use the same gap as CSS
     const x = col * (tile + gap);
     const y = row * (tile + gap);
     if (opts.immediate) {

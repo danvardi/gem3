@@ -113,6 +113,7 @@ html, body { overflow: hidden; }
   overflow: hidden;
   margin: 0 auto;
 }
+.board { contain: layout size style paint; }
 .board:after {
   /* anti-clip guard to ensure last row/col isn't visually cut by subpixel rounding */
   content: "";

@@ -30,7 +30,7 @@
       <div id="board" class="board" aria-label="Match 3 board" role="grid"></div>
     </main>
 
-    <section class="pack-section">
+    <section class="pack-section collapsed">
       <div class="pack-hud">
         <div class="pack-title">Gem Pack</div>
         <div class="pack-controls">
@@ -38,6 +38,7 @@
           <button id="viewWaiting" class="button small" aria-pressed="false">Waiting</button>
           <div class="pack-counts"><span id="packCount">0</span> total • <span id="waitingCount">0</span> waiting</div>
         </div>
+        <button id="togglePack" class="button small" aria-expanded="false" aria-controls="pack">Show Pack</button>
       </div>
       <div id="pack" class="pack" aria-label="Gem pack viewer"></div>
     </section>

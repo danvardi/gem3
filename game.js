@@ -21,6 +21,7 @@
   const waitingCountEl = document.getElementById('waitingCount');
   const viewAllBtn = document.getElementById('viewAll');
   const viewWaitingBtn = document.getElementById('viewWaiting');
+  const togglePackBtn = document.getElementById('togglePack');
 
   // Build grid background cells for a pleasing board
   function buildGridBackground() {
@@ -820,6 +821,15 @@
       viewAllBtn.setAttribute('aria-pressed', 'false');
       viewWaitingBtn.setAttribute('aria-pressed', 'true');
       renderPack();
+    });
+  }
+
+  if (togglePackBtn) {
+    togglePackBtn.addEventListener('click', () => {
+      const section = document.querySelector('.pack-section');
+      const isCollapsed = section.classList.toggle('collapsed');
+      togglePackBtn.setAttribute('aria-expanded', String(!isCollapsed));
+      togglePackBtn.textContent = isCollapsed ? 'Show Pack' : 'Hide Pack';
     });
   }
 

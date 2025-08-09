@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gem Match 3</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app">
+    <header class="hud">
+      <div class="brand">
+        <div class="logo">💎</div>
+        <h1>Gem Match</h1>
+      </div>
+      <div class="stats">
+        <div class="stat"><span class="label">Level</span><span id="level">1</span></div>
+        <div class="stat"><span class="label">Score</span><span id="score">0</span></div>
+        <div class="stat"><span class="label">Target</span><span id="target">0</span></div>
+        <div class="stat"><span class="label">Moves</span><span id="moves">0</span></div>
+        <div class="stat"><span class="label">Chain</span><span id="chain">x1</span></div>
+        <button id="newGame" class="button">New Game</button>
+      </div>
+    </header>
+
+    <main class="board-wrap">
+      <div id="board" class="board" aria-label="Match 3 board" role="grid"></div>
+    </main>
+
+    <section class="pack-section">
+      <div class="pack-hud">
+        <div class="pack-title">Gem Pack</div>
+        <div class="pack-controls">
+          <button id="viewAll" class="button small" aria-pressed="true">All</button>
+          <button id="viewWaiting" class="button small" aria-pressed="false">Waiting</button>
+          <div class="pack-counts"><span id="packCount">0</span> total • <span id="waitingCount">0</span> waiting</div>
+        </div>
+      </div>
+      <div id="pack" class="pack" aria-label="Gem pack viewer"></div>
+    </section>
+
+    <footer class="tips">
+      <p>Drag to swap. Matches go back into your pack and will drop again from the queue.</p>
+    </footer>
+  </div>
+
+  <script src="game.js" defer></script>
+</body>
+</html>

@@ -81,11 +81,15 @@
     const tipsH = tipsEl ? tipsEl.getBoundingClientRect().height : 0;
 
     const fudge = vw < 520 ? 18 : 10; // ensure visibility of last row on phones
-    const availableHeight = Math.max(180, vh - hudH - packH - tipsH - padV - fudge);
-    const availableWidth = Math.max(200, vw - padH - 8);
+    // Use 96% of available to avoid rounding clipping for the last row/col on some Android devices
+    const availableHeight = Math.max(180, (vh - hudH - packH - tipsH - padV - fudge) * 0.96);
+    const availableWidth = Math.max(200, (vw - padH - 8) * 0.96);
 
     const maxPixels = Math.min(availableWidth, availableHeight);
-    const tile = Math.floor((maxPixels - (BOARD_SIZE - 1) * gap) / BOARD_SIZE);
+    // Use floor for width and height separately and take the smaller tile to ensure full fit
+    const tilespaceW = Math.floor((availableWidth - (BOARD_SIZE - 1) * gap) / BOARD_SIZE);
+    const tilespaceH = Math.floor((availableHeight - (BOARD_SIZE - 1) * gap) / BOARD_SIZE);
+    const tile = Math.min(tilespaceW, tilespaceH);
     // Safety floor/ceiling
     return Math.max(36, Math.min(92, tile));
   }

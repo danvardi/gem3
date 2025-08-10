@@ -181,6 +181,16 @@ html, body { overflow: hidden; }
   box-shadow: 0 8px 20px rgba(0,0,0,.45), inset 0 2px 3px rgba(255,255,255,.35);
 }
 
+/* Shake animation for per-gem chip add */
+.gem.shaking .inner { animation: gm-shake 140ms var(--ease) 1; }
+@keyframes gm-shake {
+  0% { transform: translate3d(0,0,0); }
+  25% { transform: translate3d(-3px, 0, 0); }
+  50% { transform: translate3d(3px, 0, 0); }
+  75% { transform: translate3d(-2px, 0, 0); }
+  100% { transform: translate3d(0,0,0); }
+}
+
 /* Hover and drag affordances */
 .gem:hover { filter: brightness(1.05) saturate(1.05); }
 .gem.dragging { z-index: 10; transform: translate3d(var(--x), var(--y), 0) scale(1.08) rotate(-1deg); }
@@ -460,3 +470,4 @@ html, body { overflow: hidden; }
   transition: transform .08s var(--ease), filter .2s var(--ease);
 }
 .charm-pill:hover { filter: brightness(1.1); transform: translateY(-1px); }
+.charm-pill.shaking { animation: gm-shake 300ms var(--ease) 1; }

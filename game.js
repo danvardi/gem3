@@ -67,6 +67,8 @@
   /** @type {{type:'mult_per_color'|'chips_per_color', color:string, value:number}[]} */
   let charms = [];
   const MAX_CHARMS = 5;
+  // Whether current match/cascade should award per-gem effects (shake and +10 chips per gem)
+  let awardPerGemEffects = false;
   // Hint timer state
   let lastMoveAt = Date.now();
   let hintTimer = null;
@@ -302,10 +304,15 @@
     charms.slice(0, MAX_CHARMS).forEach((ch, idx) => {
       const pill = document.createElement('div');
       pill.className = 'charm-pill';
-      const label = ch.type === 'mult_per_color' ? `+1x ${ch.color}` : `+1 ${ch.color}`;
+      const pretty = colorNames && colorNames[ch.color] ? colorNames[ch.color] : ch.color;
+      const label = ch.type === 'mult_per_color'
+        ? `+1x per ${pretty}`
+        : `+10 chips per ${pretty}`;
       pill.textContent = label;
       pill.title = `Tap to sell for $${Math.floor(SHOP_PRICE/2)}`;
       pill.dataset.index = String(idx);
+      pill.dataset.type = ch.type;
+      pill.dataset.color = ch.color;
       charmsBarEl.appendChild(pill);
     });
   }
@@ -457,7 +464,48 @@
   }
 
   function animateMatches(matchedSet) {
-    return new Promise(resolve => {
+    return new Promise(async resolve => {
+      // 1) Briefly show base chips and mult for this match
+      const size = matchedSet.size;
+      // Base chips start at 10 for 3-match, 20 for 4-match, etc.
+      lastMatchChips = 10 * Math.max(1, size - 2);
+      // Base mult starts at 1 for 3, 2 for 4, etc.
+      lastMatchMult = Math.max(1, size - 2);
+      updateHUD();
+      await delay(300);
+
+      // 2) Iterate each gem: optional shake and +10 chips per gem, apply charm effects per gem
+      const allowPerGem = awardPerGemEffects;
+      const keys = Array.from(matchedSet);
+      for (const key of keys) {
+        const [r, c] = key.split(',').map(Number);
+        const gem = board[r][c];
+        if (!gem) continue;
+        const el = getGemElementById(gem.id);
+        if (!el) continue;
+        if (allowPerGem) {
+          lastMatchChips += 10;
+          // Per-gem charm application
+          for (const charm of charms) {
+            if (charm.type === 'mult_per_color' && charm.color === gem.color) {
+              lastMatchMult += charm.value;
+              // Shake a corresponding charm pill
+              const pill = charmsBarEl?.querySelector(`.charm-pill[data-type="mult_per_color"][data-color="${gem.color}"]`);
+              if (pill) { pill.classList.add('shaking'); setTimeout(() => pill.classList.remove('shaking'), 300); }
+            } else if (charm.type === 'chips_per_color' && charm.color === gem.color) {
+              lastMatchChips += 10 * charm.value;
+              const pill = charmsBarEl?.querySelector(`.charm-pill[data-type="chips_per_color"][data-color="${gem.color}"]`);
+              if (pill) { pill.classList.add('shaking'); setTimeout(() => pill.classList.remove('shaking'), 300); }
+            }
+          }
+          updateHUD();
+          el.classList.add('shaking');
+          await delay(300);
+          el.classList.remove('shaking');
+        }
+      }
+
+      // 3) Play burst and fade matched gems out then remove
       let remaining = 0;
       matchedSet.forEach(key => {
         const [r, c] = key.split(',').map(Number);
@@ -465,7 +513,6 @@
         if (!gem) return;
         const el = getGemElementById(gem.id);
         if (!el) return;
-        // Particle burst
         spawnBurstAtGem(el, gem.color);
         remaining++;
         el.classList.add('matched');
@@ -476,7 +523,12 @@
           if (remaining === 0) resolve();
         });
       });
-      if (remaining === 0) resolve();
+      if (remaining === 0) {
+        // Reset for next cascade match to show base again
+        // (score added later in clearMatchesAndScore)
+        updateHUD();
+        resolve();
+      }
     });
   }
 
@@ -516,34 +568,7 @@
   }
 
   function clearMatchesAndScore(matchedSet) {
-    // Compute base chips and base mult from match size
-    const size = matchedSet.size;
-    const baseChips = 10 * size; // 10 chips per gem matched
-    const baseMult = Math.max(1, size - 2); // 3->1, 4->2, 5->3, etc
-    lastMatchChips = baseChips;
-    lastMatchMult = baseMult;
-    // Apply charm bonuses to chips and multiplier
-    let extraChips = 0;
-    let extraMult = 0;
-    const matchedByColor = {};
-    matchedSet.forEach(key => {
-      const [r,c] = key.split(',').map(Number);
-      const g = board[r][c];
-      if (!g) return;
-      matchedByColor[g.color] = (matchedByColor[g.color] || 0) + 1;
-    });
-    for (const charm of charms) {
-      if (charm.type === 'mult_per_color') {
-        const count = matchedByColor[charm.color] || 0;
-        if (count > 0) extraMult += charm.value * count; // +1 to mult per matched gem of color
-      } else if (charm.type === 'chips_per_color') {
-        const count = matchedByColor[charm.color] || 0;
-        if (count > 0) extraChips += charm.value * count; // add flat chips per gem
-      }
-    }
-    lastMatchChips += extraChips;
-    lastMatchMult += extraMult;
-    // Score for this resolution step
+    // lastMatchChips/lastMatchMult have been fully built during animateMatches
     const gained = lastMatchChips * lastMatchMult;
     score += gained;
     updateHUD();
@@ -630,6 +655,9 @@
       await delay(40);
     }
     chainMultiplier = 1;
+    // After all cascade scoring completes, reset match HUD to 0×0
+    lastMatchChips = 0;
+    lastMatchMult = 0;
     updateHUD();
     return anyMatch;
   }
@@ -781,7 +809,7 @@
     const items = [];
     for (const color of COLORS) {
       items.push({ id: `mult_${color}`, kind: 'mult_per_color', color, title: `+1x per ${colorNames[color]}` , desc: `Increase match multiplier by +1 for each matched ${colorNames[color]} gem.`, price: SHOP_PRICE });
-      items.push({ id: `chips_${color}`, kind: 'chips_per_color', color, title: `+1 chip per ${colorNames[color]}`, desc: `Gain +1 score chip for each matched ${colorNames[color]} gem.`, price: SHOP_PRICE });
+      items.push({ id: `chips_${color}`, kind: 'chips_per_color', color, title: `+10 chips per ${colorNames[color]}`, desc: `Gain +10 chips for each matched ${colorNames[color]} gem.`, price: SHOP_PRICE });
     }
     return items;
   }
@@ -896,11 +924,14 @@
           isBusy = false;
         } else {
           // Resolve matches and cascades
+          // Award per-gem effects for the user-initiated match and all resulting cascades
+          awardPerGemEffects = true;
           await animateMatches(matches);
           clearMatchesAndScore(matches);
           chainMultiplier = 2;
           await applyGravityAndFill();
           await resolveBoard();
+          awardPerGemEffects = false;
           await checkAndReshuffleIfStuck();
           restartHintTimer();
           // decrement a move only on successful swap

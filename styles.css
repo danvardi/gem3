@@ -78,6 +78,8 @@ html, body { overflow: hidden; }
 }
 .stat .label { color: var(--muted); font-size: 12px; letter-spacing: .5px; text-transform: uppercase; }
 .stat span:last-child { font-weight: 700; font-size: 18px; }
+.stat.match { grid-auto-flow: column; grid-auto-columns: auto; gap: 8px; align-items: center; }
+.stat.match .x { opacity: .7; font-weight: 700; }
 
 .button {
   border: 0;

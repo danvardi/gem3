@@ -11,6 +11,8 @@
   const boardEl = document.getElementById('board');
   const scoreEl = document.getElementById('score');
   const chainEl = document.getElementById('chain');
+  const chipsEl = document.getElementById('chips');
+  const multEl = document.getElementById('mult');
   const moneyEl = document.getElementById('money');
   const levelEl = document.getElementById('level');
   const targetEl = document.getElementById('target');
@@ -46,7 +48,9 @@
   // State
   let board = []; // 2D array of gem objects or null
   let score = 0;
-  let chainMultiplier = 1;
+  let chainMultiplier = 1; // legacy; not used for display now
+  let lastMatchChips = 0;
+  let lastMatchMult = 1;
   let isBusy = false; // block input during animations
   // Pack state
   /** @type {{id:string,color:string,state:'waiting'|'onboard'}[]} */
@@ -281,7 +285,9 @@
 
   function updateHUD() {
     scoreEl.textContent = String(score);
-    chainEl.textContent = `x${chainMultiplier}`;
+    if (chainEl) chainEl.textContent = ``;
+    if (chipsEl) chipsEl.textContent = String(lastMatchChips);
+    if (multEl) multEl.textContent = String(lastMatchMult);
     if (levelEl) levelEl.textContent = String(currentLevel);
     if (targetEl) targetEl.textContent = String(levelTarget);
     if (movesEl) movesEl.textContent = String(movesRemaining);
@@ -510,10 +516,15 @@
   }
 
   function clearMatchesAndScore(matchedSet) {
-    // Update score with multiplier
-    const base = 10;
-    let gained = matchedSet.size * base * chainMultiplier;
-    // Apply charms: additional multiplier per matched color
+    // Compute base chips and base mult from match size
+    const size = matchedSet.size;
+    const baseChips = 10 * size; // 10 chips per gem matched
+    const baseMult = Math.max(1, size - 2); // 3->1, 4->2, 5->3, etc
+    lastMatchChips = baseChips;
+    lastMatchMult = baseMult;
+    // Apply charm bonuses to chips and multiplier
+    let extraChips = 0;
+    let extraMult = 0;
     const matchedByColor = {};
     matchedSet.forEach(key => {
       const [r,c] = key.split(',').map(Number);
@@ -524,13 +535,18 @@
     for (const charm of charms) {
       if (charm.type === 'mult_per_color') {
         const count = matchedByColor[charm.color] || 0;
-        if (count > 0) gained += base * count * charm.value; // +1x per matched gem of color
+        if (count > 0) extraMult += charm.value * count; // +1 to mult per matched gem of color
       } else if (charm.type === 'chips_per_color') {
         const count = matchedByColor[charm.color] || 0;
-        if (count > 0) gained += charm.value * count; // add flat chips per gem
+        if (count > 0) extraChips += charm.value * count; // add flat chips per gem
       }
     }
+    lastMatchChips += extraChips;
+    lastMatchMult += extraMult;
+    // Score for this resolution step
+    const gained = lastMatchChips * lastMatchMult;
     score += gained;
+    updateHUD();
     matchedSet.forEach(key => {
       const [r, c] = key.split(',').map(Number);
       const gem = board[r][c];

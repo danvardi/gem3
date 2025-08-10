@@ -18,6 +18,7 @@
       </div>
       <div class="stats">
         <div class="stat"><span class="label">Level</span><span id="level">1</span></div>
+        <div class="stat"><span class="label">Money</span><span id="money">$4</span></div>
         <div class="stat"><span class="label">Score</span><span id="score">0</span></div>
         <div class="stat"><span class="label">Target</span><span id="target">0</span></div>
         <div class="stat"><span class="label">Moves</span><span id="moves">0</span></div>
@@ -27,8 +28,24 @@
       </div>
     </header>
 
+    <div id="charmsBar" class="charms-bar" aria-label="Owned charms"></div>
+
     <main class="board-wrap">
-      <div id="board" class="board" aria-label="Match 3 board" role="grid"></div>
+      <div id="board" class="board" aria-label="Match 3 board" role="grid">
+        <!-- Shop overlay sized to fill the board -->
+        <section id="shopOverlay" class="shop-overlay collapsed" aria-hidden="true" role="dialog" aria-modal="true">
+          <div class="shop-panel">
+            <div class="shop-header">
+              <h2>Charm Shop</h2>
+              <div class="shop-money">Balance: <span id="shopMoney">$0</span></div>
+            </div>
+            <div id="shopList" class="shop-list" aria-label="Available charms"></div>
+            <div class="shop-actions">
+              <button id="shopContinue" class="button">Continue</button>
+            </div>
+          </div>
+        </section>
+      </div>
     </main>
 
     <section class="pack-section collapsed" aria-hidden="true">

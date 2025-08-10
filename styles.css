@@ -100,6 +100,7 @@ html, body { overflow: hidden; }
   justify-content: center;
   align-items: center;
   padding: 10px 16px 24px;
+  position: relative;
 }
 
 .board {
@@ -394,3 +395,66 @@ html, body { overflow: hidden; }
 @supports (padding: max(0px)) {
   body { padding-bottom: max(0px, env(safe-area-inset-bottom)); }
 }
+
+/* Shop overlay */
+.shop-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  z-index: 1200;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s var(--ease);
+}
+.shop-overlay:not(.collapsed) { opacity: 1; pointer-events: auto; }
+.shop-panel {
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column;
+  gap: 12px;
+  background: linear-gradient(180deg, #0b1026, #121735);
+  padding: 14px;
+}
+.shop-header { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.shop-header h2 { margin: 0; font-size: 22px; }
+.shop-money { color: var(--muted); }
+.shop-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  overflow: auto;
+}
+.shop-card {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  gap: 6px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,.06);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,.06), inset 0 -1px 2px rgba(0,0,0,.25);
+}
+.shop-card h3 { margin: 0; font-size: 16px; }
+.shop-card p { margin: 0; color: var(--muted); font-size: 12px; }
+.shop-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+/* Charms bar */
+.charms-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 16px 8px;
+  justify-content: center;
+}
+.charm-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255,255,255,.08);
+  box-shadow: inset 0 1px 2px rgba(255,255,255,.06), inset 0 -1px 2px rgba(0,0,0,.25);
+  font-size: 12px;
+  cursor: pointer;
+  transition: transform .08s var(--ease), filter .2s var(--ease);
+}
+.charm-pill:hover { filter: brightness(1.1); transform: translateY(-1px); }

@@ -11,10 +11,17 @@
   const boardEl = document.getElementById('board');
   const scoreEl = document.getElementById('score');
   const chainEl = document.getElementById('chain');
+  const moneyEl = document.getElementById('money');
   const levelEl = document.getElementById('level');
   const targetEl = document.getElementById('target');
   const movesEl = document.getElementById('moves');
   const newGameBtn = document.getElementById('newGame');
+  // Shop UI
+  const shopOverlayEl = document.getElementById('shopOverlay');
+  const shopListEl = document.getElementById('shopList');
+  const shopMoneyEl = document.getElementById('shopMoney');
+  const shopContinueBtn = document.getElementById('shopContinue');
+  const charmsBarEl = document.getElementById('charmsBar');
   // Pack UI
   const packEl = document.getElementById('pack');
   const packCountEl = document.getElementById('packCount');
@@ -51,6 +58,11 @@
   let currentLevel = 1;
   let levelTarget = 0;
   let movesRemaining = 0;
+  let money = 4;
+  // Charms owned
+  /** @type {{type:'mult_per_color'|'chips_per_color', color:string, value:number}[]} */
+  let charms = [];
+  const MAX_CHARMS = 5;
   // Hint timer state
   let lastMoveAt = Date.now();
   let hintTimer = null;
@@ -245,6 +257,10 @@
     board = new Array(BOARD_SIZE).fill(null).map(() => new Array(BOARD_SIZE).fill(null));
     boardEl.innerHTML = '';
     buildGridBackground();
+    // Re-attach shop overlay inside board if present
+    if (shopOverlayEl && !shopOverlayEl.isConnected) {
+      boardEl.appendChild(shopOverlayEl);
+    }
     initPackTokens();
     for (let r = 0; r < BOARD_SIZE; r++) {
       for (let c = 0; c < BOARD_SIZE; c++) {
@@ -269,6 +285,23 @@
     if (levelEl) levelEl.textContent = String(currentLevel);
     if (targetEl) targetEl.textContent = String(levelTarget);
     if (movesEl) movesEl.textContent = String(movesRemaining);
+    if (moneyEl) moneyEl.textContent = `$${money}`;
+    if (shopMoneyEl) shopMoneyEl.textContent = `$${money}`;
+    renderCharmsBar();
+  }
+
+  function renderCharmsBar() {
+    if (!charmsBarEl) return;
+    charmsBarEl.innerHTML = '';
+    charms.slice(0, MAX_CHARMS).forEach((ch, idx) => {
+      const pill = document.createElement('div');
+      pill.className = 'charm-pill';
+      const label = ch.type === 'mult_per_color' ? `+1x ${ch.color}` : `+1 ${ch.color}`;
+      pill.textContent = label;
+      pill.title = `Tap to sell for $${Math.floor(SHOP_PRICE/2)}`;
+      pill.dataset.index = String(idx);
+      charmsBarEl.appendChild(pill);
+    });
   }
 
   function updatePackHUD() {
@@ -479,7 +512,25 @@
   function clearMatchesAndScore(matchedSet) {
     // Update score with multiplier
     const base = 10;
-    score += matchedSet.size * base * chainMultiplier;
+    let gained = matchedSet.size * base * chainMultiplier;
+    // Apply charms: additional multiplier per matched color
+    const matchedByColor = {};
+    matchedSet.forEach(key => {
+      const [r,c] = key.split(',').map(Number);
+      const g = board[r][c];
+      if (!g) return;
+      matchedByColor[g.color] = (matchedByColor[g.color] || 0) + 1;
+    });
+    for (const charm of charms) {
+      if (charm.type === 'mult_per_color') {
+        const count = matchedByColor[charm.color] || 0;
+        if (count > 0) gained += base * count * charm.value; // +1x per matched gem of color
+      } else if (charm.type === 'chips_per_color') {
+        const count = matchedByColor[charm.color] || 0;
+        if (count > 0) gained += charm.value * count; // add flat chips per gem
+      }
+    }
+    score += gained;
     matchedSet.forEach(key => {
       const [r, c] = key.split(',').map(Number);
       const gem = board[r][c];
@@ -648,10 +699,18 @@
   }
 
   // Levels
+  let lastLevelScore = 0;
+  let lastLevelTarget = 0;
+  const LINEAR_TARGET_STEP = 100; // linear increment per level after level 1
+  const MOVES_LINEAR_STEP = 1;    // linear increment to moves per level
   function computeLevelConfig(level) {
-    const baseTarget = 300;
-    const target = Math.round(baseTarget + Math.pow(Math.max(0, level - 1), 1.25) * 220);
-    const moves = Math.max(8, 26 - Math.floor((level - 1) * 1.5));
+    if (level === 1) {
+      return { target: 100, moves: 5 };
+    }
+    // Linear target growth independent of prior performance
+    const target = 100 + (level - 1) * LINEAR_TARGET_STEP;
+    // Linear moves scaling by a constant step (clamped)
+    const moves = Math.max(3, Math.min(20, Math.round(5 + (level - 1) * MOVES_LINEAR_STEP)));
     return { target, moves };
   }
 
@@ -679,13 +738,116 @@
   }
 
   function onLevelComplete() {
+    // Award $1 per unused move
+    money += Math.max(0, movesRemaining);
+    // Save performance for next level scaling
+    lastLevelScore = score;
+    lastLevelTarget = levelTarget;
     showToast(`Level ${currentLevel} complete!`);
-    setTimeout(() => startLevel(currentLevel + 1), 900);
+    updateHUD();
+    setTimeout(openShop, 600);
   }
 
   function onLevelFailed() {
     showToast(`Level ${currentLevel} failed`);
-    setTimeout(() => startLevel(currentLevel), 900);
+    lastLevelScore = score;
+    lastLevelTarget = levelTarget;
+    setTimeout(openShop, 600);
+  }
+
+  // Shop logic
+  const SHOP_PRICE = 5;
+  const colorNames = {
+    ruby: 'Red', sapphire: 'Blue', emerald: 'Green', topaz: 'Orange', amethyst: 'Purple', citrine: 'Yellow', aquamarine: 'Cyan', rose: 'Pink'
+  };
+
+  function getShopItems() {
+    const items = [];
+    for (const color of COLORS) {
+      items.push({ id: `mult_${color}`, kind: 'mult_per_color', color, title: `+1x per ${colorNames[color]}` , desc: `Increase match multiplier by +1 for each matched ${colorNames[color]} gem.`, price: SHOP_PRICE });
+      items.push({ id: `chips_${color}`, kind: 'chips_per_color', color, title: `+1 chip per ${colorNames[color]}`, desc: `Gain +1 score chip for each matched ${colorNames[color]} gem.`, price: SHOP_PRICE });
+    }
+    return items;
+  }
+
+  function isCharmOwned(kind, color) {
+    const type = kind === 'mult_per_color' ? 'mult_per_color' : 'chips_per_color';
+    return charms.some(ch => ch.type === type && ch.color === color);
+  }
+
+  function getAvailableShopItems() {
+    return getShopItems().filter(item => !isCharmOwned(item.kind, item.color));
+  }
+
+  function getRandomShopItems(count, sourceItems) {
+    const items = (sourceItems && sourceItems.length ? [...sourceItems] : getShopItems());
+    for (let i = items.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [items[i], items[j]] = [items[j], items[i]];
+    }
+    return items.slice(0, Math.max(0, Math.min(count, items.length)));
+  }
+
+  function openShop() {
+    // Populate shop
+    if (!shopOverlayEl || !shopListEl) return startLevel(currentLevel + 1);
+    // Ensure overlay is attached to board
+    if (!shopOverlayEl.isConnected) {
+      boardEl.appendChild(shopOverlayEl);
+    }
+    shopListEl.innerHTML = '';
+    const pool = getAvailableShopItems();
+    const items = getRandomShopItems(3, pool);
+    for (const item of items) {
+      const card = document.createElement('div');
+      card.className = 'shop-card';
+      const disabled = money < item.price || charms.length >= MAX_CHARMS;
+      card.innerHTML = `<h3>${item.title}</h3><p>${item.desc}</p><div class="shop-actions"><button class="button" data-id="${item.id}" data-kind="${item.kind}" data-color="${item.color}" ${disabled ? 'disabled' : ''}>Buy $${item.price}</button></div>`;
+      shopListEl.appendChild(card);
+    }
+    shopOverlayEl.classList.remove('collapsed');
+    shopOverlayEl.setAttribute('aria-hidden', 'false');
+    updateHUD();
+  }
+
+  function closeShopAndContinue() {
+    if (!shopOverlayEl) return;
+    shopOverlayEl.classList.add('collapsed');
+    shopOverlayEl.setAttribute('aria-hidden', 'true');
+    startLevel(currentLevel + 1);
+  }
+
+  if (shopListEl) {
+    shopListEl.addEventListener('click', (e) => {
+      const btn = e.target.closest('button[data-id]');
+      if (!btn) return;
+      const kind = btn.getAttribute('data-kind');
+      const color = btn.getAttribute('data-color');
+      if (money < SHOP_PRICE || charms.length >= MAX_CHARMS) return;
+      money -= SHOP_PRICE;
+      charms.push({ type: kind === 'mult_per_color' ? 'mult_per_color' : 'chips_per_color', color, value: 1 });
+      updateHUD();
+      btn.disabled = true;
+    });
+  }
+
+  if (shopContinueBtn) {
+    shopContinueBtn.addEventListener('click', closeShopAndContinue);
+  }
+
+  // Allow selling charms from the bar
+  if (charmsBarEl) {
+    charmsBarEl.addEventListener('click', (e) => {
+      const pill = e.target.closest('.charm-pill');
+      if (!pill) return;
+      const idx = parseInt(pill.dataset.index, 10);
+      if (isNaN(idx)) return;
+      const sold = charms.splice(idx, 1)[0];
+      if (!sold) return;
+      const value = Math.floor(SHOP_PRICE / 2);
+      money += value;
+      updateHUD();
+    });
   }
 
   function trySwap(r1, c1, r2, c2) {
@@ -854,6 +1016,8 @@
   // New game
   newGameBtn.addEventListener('click', () => {
     if (isBusy) return;
+    // Reset money to initial amount on a fresh new game
+    money = 4;
     startLevel(1);
   });
 

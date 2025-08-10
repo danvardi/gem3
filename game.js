@@ -338,7 +338,11 @@
     const token = getTokenById(id);
     if (!token) return;
     token.state = 'waiting';
-    waitingQueue.push(id);
+    // Ensure no duplicates then insert at a random position to avoid deterministic cascades
+    const existingIndex = waitingQueue.indexOf(id);
+    if (existingIndex !== -1) waitingQueue.splice(existingIndex, 1);
+    const insertAt = Math.floor(Math.random() * (waitingQueue.length + 1));
+    waitingQueue.splice(insertAt, 0, id);
     updatePackHUD();
   }
 
